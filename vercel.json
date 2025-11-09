@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd vesto-app && npm run build",
+  "outputDirectory": "vesto-app/.next",
+  "installCommand": "cd vesto-app && npm install",
+  "framework": "nextjs"
+}
+

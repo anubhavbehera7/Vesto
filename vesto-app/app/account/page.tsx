@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createClient } from '@/lib/supabase/client';
+import { getPitchStats } from '@/lib/supabase/queries';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -60,17 +61,17 @@ export default function AccountPage() {
         email: authUser.email || userProfile?.email || null
       });
 
-      // Fetch pitch stats
-      const { data: pitches } = await supabase
-        .from('pitch_submissions')
-        .select('status')
-        .eq('user_id', authUser.id);
-
-      if (pitches) {
-        const total = pitches.length;
-        const approved = pitches.filter(p => p.status === 'approved').length;
-        const accuracy = total > 0 ? Math.round((approved / total) * 100) : 0;
-        setStats({ pitches: total, approved, accuracy });
+      // Fetch pitch stats from Supabase
+      try {
+        const pitchStats = await getPitchStats(authUser.id);
+        setStats({
+          pitches: pitchStats.totalPitches,
+          approved: pitchStats.approvedPitches,
+          accuracy: pitchStats.approvalRate
+        });
+      } catch (error) {
+        console.error('Error fetching pitch stats:', error);
+        // Keep default stats (0, 0, 0) on error
       }
 
       setLoading(false);
@@ -78,13 +79,6 @@ export default function AccountPage() {
 
     fetchUserData();
   }, [router]);
-
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
 
   if (loading) {
     return (
@@ -151,21 +145,6 @@ export default function AccountPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p>Appearance</p>
-            <Button variant="outline">Toggle Dark Mode</Button>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button variant="destructive" onClick={handleLogout}>Log Out</Button>
-        </CardFooter>
       </Card>
 
     </div>
