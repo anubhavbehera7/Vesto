@@ -17,6 +17,39 @@ export async function POST(
       );
     }
 
+    // Ensure user exists in users table (required for foreign key constraint)
+    const { data: existingUser, error: userCheckError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (userCheckError) {
+      console.error('Error checking user:', userCheckError);
+      return NextResponse.json(
+        { error: 'Failed to verify user' },
+        { status: 500 }
+      );
+    }
+
+    // Create user in users table if they don't exist
+    if (!existingUser) {
+      const { error: insertUserError } = await supabase
+        .from('users')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || null,
+        });
+
+      if (insertUserError) {
+        console.error('Error creating user:', insertUserError);
+        // Don't fail completely - try to continue (user might already exist from race condition)
+      } else {
+        console.log('Created user in users table:', user.id);
+      }
+    }
+
     const body = await request.json();
     const { completionPercentage, status, totalQuestions, correctAnswers, averageScore } = body;
 
@@ -75,14 +108,25 @@ export async function POST(
       .single();
     
     if (error) {
+      console.error('Error upserting progress:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       throw error;
     }
     
     return NextResponse.json({ data });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving progress:', error);
     return NextResponse.json(
-      { error: 'Failed to save progress' },
+      { 
+        error: 'Failed to save progress',
+        details: error.message || 'Unknown error',
+        code: error.code,
+      },
       { status: 500 }
     );
   }
