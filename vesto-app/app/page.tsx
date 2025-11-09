@@ -1,11 +1,32 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, LineChart, TrendingUp, Award } from "lucide-react";
+import { BookOpen, LineChart, TrendingUp, Award, LogIn, UserPlus } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
+      {/* Login/Signup Buttons */}
+      <div className="flex justify-end gap-3 pt-4">
+        <Link href="/login">
+          <Button
+            variant="outline"
+            className="gap-2 border-[#e0ddd8] hover:bg-[#f5f4f2] text-[#2d2d2d] dark:border-[#3a3a38] dark:hover:bg-[#222220] dark:text-[#e8e6e3]"
+          >
+            <LogIn className="h-4 w-4" />
+            Login
+          </Button>
+        </Link>
+        <Link href="/signup">
+          <Button
+            className="gap-2 bg-[#b4d4b4] hover:bg-[#a0c5a0] text-[#2d2d2d] font-medium border border-[#9cc09c] dark:bg-[#8fb48f] dark:hover:bg-[#a0c5a0] dark:text-[#1a1a18]"
+          >
+            <UserPlus className="h-4 w-4" />
+            Sign Up
+          </Button>
+        </Link>
+      </div>
+
       {/* Hero Section */}
       <div className="text-center space-y-6 py-16">
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-[#2d2d2d] dark:text-[#e8e6e3]">
