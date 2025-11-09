@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { MODULES } from '@/types';
 import { get10KNarrative } from '@/lib/mock-data/10k-narratives';
+import { createClient } from '@/lib/supabase/client';
 import { ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -275,6 +276,134 @@ export default function ModulePage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [feedback, setFeedback] = useState<Record<number, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+  const saveInProgressRef = useRef(false);
+
+  useEffect(() => {
+    async function getUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    }
+    getUser();
+  }, []);
+
+  // Function to save progress to database using client-side Supabase
+  const saveProgress = async (currentFeedback: Record<number, any>, completedQuestions: number, totalQuestions: number) => {
+    if (!userId || saveInProgressRef.current) return;
+
+    saveInProgressRef.current = true;
+    setIsSaving(true);
+
+    // Ensure completion percentage is exactly 100 when all questions are answered
+    const completionPercentage = completedQuestions === totalQuestions ? 100 : Math.round((completedQuestions / totalQuestions) * 100);
+    
+    // Calculate correct answers and average score
+    let correctAnswers = 0;
+    let totalScore = 0;
+    let scoredCount = 0;
+
+    Object.entries(currentFeedback).forEach(([questionId, fb]: [string, any]) => {
+      const question = content.questions.find((q: any) => q.id === parseInt(questionId));
+      if (question) {
+        if (question.type === 'mcq') {
+          if (fb.isCorrect) correctAnswers++;
+        } else if (question.type === 'written' && fb.overall_score !== undefined) {
+          totalScore += fb.overall_score;
+          scoredCount++;
+        }
+      }
+    });
+
+    const averageScore = scoredCount > 0 ? totalScore / scoredCount : 0;
+
+    try {
+      const supabase = createClient();
+      
+      // First, check if progress exists to preserve timestamps
+      const { data: existing } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('module_id', moduleId)
+        .maybeSingle();
+
+      const status = completionPercentage === 100 ? 'completed' : completionPercentage > 0 ? 'in_progress' : 'not_started';
+      
+      const updateData: any = {
+        user_id: userId,
+        module_id: moduleId,
+        completion_percentage: completionPercentage,
+        status: status,
+        total_questions: totalQuestions,
+        correct_answers: correctAnswers,
+        average_score: Math.round(averageScore),
+        last_accessed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Preserve or set started_at
+      if (status === 'in_progress' && !existing?.started_at) {
+        updateData.started_at = new Date().toISOString();
+      } else if (existing?.started_at) {
+        updateData.started_at = existing.started_at;
+      }
+
+      // Preserve or set completed_at
+      if (completionPercentage === 100 && !existing?.completed_at) {
+        updateData.completed_at = new Date().toISOString();
+      } else if (existing?.completed_at) {
+        updateData.completed_at = existing.completed_at;
+      }
+
+      // Upsert progress
+      const { error, data: savedData } = await supabase
+        .from('user_progress')
+        .upsert(updateData, {
+          onConflict: 'user_id,module_id'
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error saving progress:', error);
+      } else {
+        console.log(`Progress saved for ${moduleId}: ${completionPercentage}%`, savedData);
+      }
+    } catch (error) {
+      console.error('Error saving progress:', error);
+    } finally {
+      saveInProgressRef.current = false;
+      setIsSaving(false);
+    }
+  };
+
+  // Auto-save progress whenever feedback changes
+  useEffect(() => {
+    if (userId && Object.keys(feedback).length > 0 && content) {
+      const completedCount = Object.keys(feedback).length;
+      const totalQuestions = content.questions.length;
+      saveProgress(feedback, completedCount, totalQuestions);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedback, userId]);
+
+  // Handle back button click - ensure progress is saved before navigating
+  const handleBackClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Save progress one more time before navigating
+    if (userId && Object.keys(feedback).length > 0) {
+      const completedCount = Object.keys(feedback).length;
+      await saveProgress(feedback, completedCount, content.questions.length);
+    }
+    
+    // Wait longer to ensure save completes and database is updated
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    router.push('/learn');
+  };
 
   if (!module || !content) {
     return <div>Module not found</div>;
@@ -291,13 +420,16 @@ export default function ModulePage() {
     const question = content.questions.find((q: any) => q.id === questionId);
     const isCorrect = answer === question.correctAnswer;
     
-    setFeedback({
+    const newFeedback = {
       ...feedback,
       [questionId]: {
         isCorrect,
         explanation: question.explanation
       }
-    });
+    };
+    
+    setFeedback(newFeedback);
+    // Progress will be auto-saved via useEffect
   };
 
   const handleSubmitWritten = async (questionId: number) => {
@@ -321,7 +453,7 @@ export default function ModulePage() {
     // For MVP, provide realistic mock feedback
     const mockScore = 70 + Math.floor(Math.random() * 25); // 70-95
     
-    setFeedback({
+    const newFeedback = {
       ...feedback,
       [questionId]: {
         overall_score: mockScore,
@@ -351,7 +483,10 @@ export default function ModulePage() {
           ? 'Strong analysis demonstrating good understanding of key concepts. You effectively used specific data points and showed critical thinking.'
           : 'Good effort with room for improvement. Focus on providing more specific evidence and deeper analysis of implications and risks.'
       }
-    });
+    };
+    
+    setFeedback(newFeedback);
+    // Progress will be auto-saved via useEffect
     
     setIsSubmitting(false);
   };
@@ -363,11 +498,15 @@ export default function ModulePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/learn">
-            <Button variant="ghost" size="icon" className="hover:bg-[#f5f4f2] dark:hover:bg-[#222220]">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hover:bg-[#f5f4f2] dark:hover:bg-[#222220]"
+            onClick={handleBackClick}
+            disabled={isSaving}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-[#2d2d2d] dark:text-[#e8e6e3]">{content.title}</h1>
             <p className="text-[#6a6a6a] dark:text-[#9a9a98]">
@@ -609,13 +748,20 @@ export default function ModulePage() {
                       disabled={!!feedback[question.id]}
                     />
                     {!feedback[question.id] && (
-                      <Button 
-                        onClick={() => handleSubmitWritten(question.id)}
-                        disabled={isSubmitting}
-                        className="w-full"
-                      >
-                        {isSubmitting ? 'Grading...' : 'Submit for AI Grading'}
-                      </Button>
+                      <>
+                        {answers[question.id] && answers[question.id].length < 50 && (
+                          <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98]">
+                            Please provide at least 50 characters ({answers[question.id].length}/50)
+                          </p>
+                        )}
+                        <Button 
+                          onClick={() => handleSubmitWritten(question.id)}
+                          disabled={isSubmitting || !answers[question.id] || answers[question.id].length < 50}
+                          className="w-full"
+                        >
+                          {isSubmitting ? 'Grading...' : 'Submit for AI Grading'}
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}
