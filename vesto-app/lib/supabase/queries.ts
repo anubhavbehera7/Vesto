@@ -97,6 +97,17 @@ export async function getUserProgress(userId: string, moduleId: string) {
   return data as UserProgress | null;
 }
 
+export async function getAllUserProgress(userId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('user_progress')
+    .select('*')
+    .eq('user_id', userId);
+  
+  if (error) throw error;
+  return data as UserProgress[];
+}
+
 export async function updateUserProgress(userId: string, moduleId: string, updates: Partial<UserProgress>) {
   const supabase = createClient();
   const { data, error } = await supabase
