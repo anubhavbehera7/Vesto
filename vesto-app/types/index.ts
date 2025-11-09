@@ -76,6 +76,29 @@ export interface Mock10KData {
   created_at: string;
 }
 
+export interface Company10KSections {
+  id: number;
+  company_id: number;
+  symbol: string;
+  filing_url: string;
+  access_number: string | null;
+  filed_date: string | null;
+  fiscal_year: number | null;
+  section_1_business: string | null;
+  section_1a_risk_factors: string | null;
+  section_1c_cybersecurity: string | null;
+  section_7_mda: string | null;
+  section_7a_market_risk: string | null;
+  section_8_financial_statements: string | null;
+  section_9a_controls: string | null;
+  extracted_at: string;
+  extraction_status: 'completed' | 'partial' | 'failed';
+  sections_extracted: number;
+  api_calls_used: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Module {
   id: string;
   title: string;

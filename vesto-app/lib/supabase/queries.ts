@@ -1,5 +1,5 @@
 import { createClient } from './client';
-import type { Company, CompanyFundamentals, CompanyQuote, Mock10KData, UserProgress, UserAnswer, UserPortfolio, PitchSubmission, Question } from '@/types';
+import type { Company, CompanyFundamentals, CompanyQuote, Mock10KData, Company10KSections, UserProgress, UserAnswer, UserPortfolio, PitchSubmission, Question } from '@/types';
 
 // Note: Using browser client for both server and client contexts
 // The browser client works fine in API routes since we're using anon key with RLS
@@ -70,6 +70,32 @@ export async function getMock10KData(symbol: string) {
   
   if (error) throw error;
   return data as Mock10KData;
+}
+
+export async function getCompany10KSections(symbol: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('company_10k_sections')
+    .select('*')
+    .eq('symbol', symbol)
+    .order('fiscal_year', { ascending: false })
+    .limit(1)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+  return data as Company10KSections | null;
+}
+
+export async function getAllCompany10KSections(symbol: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('company_10k_sections')
+    .select('*')
+    .eq('symbol', symbol)
+    .order('fiscal_year', { ascending: false });
+  
+  if (error) throw error;
+  return data as Company10KSections[];
 }
 
 export async function getCompanyFinancials(symbol: string) {

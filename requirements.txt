@@ -1,0 +1,4 @@
+# Python dependencies for Vesto 10-K extraction script
+requests>=2.31.0
+supabase>=2.0.0
+
