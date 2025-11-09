@@ -2,8 +2,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
-// Use gemini-pro-latest as it's confirmed working, with fallback to gemini-1.5-flash
-const MODEL_NAME = 'gemini-pro-latest';
+// Use gemini-2.5-flash (free tier model - latest flash model)
+const MODEL_NAME = 'gemini-2.5-flash';
 
 export function getGeminiModel() {
   return genAI.getGenerativeModel({ model: MODEL_NAME });

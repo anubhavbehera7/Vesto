@@ -5,9 +5,11 @@ import type { AIFeedback } from '@/types';
 export async function gradeAnswer(
   question: string,
   studentAnswer: string,
-  context: string
+  context: string,
+  expectedCompanyName?: string | null,
+  expectedCompanySymbol?: string | null
 ): Promise<AIFeedback> {
-  const prompt = buildGradingPrompt(question, studentAnswer, context);
+  const prompt = buildGradingPrompt(question, studentAnswer, context, expectedCompanyName, expectedCompanySymbol);
   
   try {
     console.log('Grading answer with prompt length:', prompt.length);

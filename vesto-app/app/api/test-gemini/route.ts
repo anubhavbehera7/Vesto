@@ -39,13 +39,15 @@ export async function GET() {
       // Ignore if listing fails
     }
 
-    // Try different model names
+    // Try different free model names (prioritize free models)
     const modelNames = [
+      'gemini-2.5-flash',   // Free tier - latest flash model
+      'gemini-2.0-flash-exp', // Free tier - experimental
+      'gemini-1.5-flash',   // Free tier - fast and efficient
+      'gemini-pro',         // Free tier - older but reliable
       'gemini-1.5-flash-latest',
-      'gemini-1.5-flash',
       'gemini-1.5-pro-latest',
       'gemini-1.5-pro',
-      'gemini-pro',
       'gemini-pro-latest'
     ];
 

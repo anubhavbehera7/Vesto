@@ -9,7 +9,7 @@ export async function POST(
   try {
     const { moduleId } = await params;
     const body = await request.json();
-    const { userId, questionId, questionText, answerText, context, symbol } = body;
+    const { userId, questionId, questionText, answerText, context, symbol, expectedCompanyName, expectedCompanySymbol } = body;
 
     if (!userId || !questionId || !answerText || !questionText) {
       return NextResponse.json(
@@ -37,8 +37,14 @@ export async function POST(
       );
     }
 
-    // Grade answer with AI
-    const aiFeedback = await gradeAnswer(questionText, answerText, context || '');
+    // Grade answer with AI (pass company info for validation)
+    const aiFeedback = await gradeAnswer(
+      questionText, 
+      answerText, 
+      context || '',
+      expectedCompanyName,
+      expectedCompanySymbol
+    );
 
     // Save answer to database using server-side client (with auth session)
     // Note: question_id is nullable because hardcoded questions don't exist in ai_generated_questions table

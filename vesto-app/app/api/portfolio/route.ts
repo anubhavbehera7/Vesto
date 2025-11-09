@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserPortfolio, addToPortfolio } from '@/lib/supabase/queries';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
@@ -13,12 +13,39 @@ export async function GET(request: Request) {
       );
     }
 
-    const portfolio = await getUserPortfolio(userId);
-    return NextResponse.json({ data: portfolio });
-  } catch (error) {
+    // Get authenticated user from server-side client
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: 'Please log in to view portfolio' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the userId matches the authenticated user
+    if (user.id !== userId) {
+      return NextResponse.json(
+        { error: 'Forbidden', details: 'User ID mismatch' },
+        { status: 403 }
+      );
+    }
+
+    // Fetch portfolio using server-side client
+    const { data: portfolio, error } = await supabase
+      .from('user_portfolios')
+      .select('*')
+      .eq('user_id', userId)
+      .order('buy_date', { ascending: false });
+
+    if (error) throw error;
+
+    return NextResponse.json({ data: portfolio || [] });
+  } catch (error: any) {
     console.error('Error fetching portfolio:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch portfolio' },
+      { error: 'Failed to fetch portfolio', details: error?.message },
       { status: 500 }
     );
   }

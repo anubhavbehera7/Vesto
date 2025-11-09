@@ -96,14 +96,14 @@ const MODULE_CONTENT: Record<string, any> = {
       {
         id: 6,
         type: 'written',
-        question: 'Explain the relationship between ROE, ROA, and financial leverage. How does debt affect these ratios?',
-        guidance: 'Describe how ROE = ROA × Equity Multiplier, and explain how using debt can amplify returns but also increase risk. Use specific examples if possible.'
+        question: 'Explain the relationship between ROE, ROA, and financial leverage. How does debt affect these ratios? Use your selected company as an example to illustrate these concepts.',
+        guidance: 'Describe how ROE = ROA × Equity Multiplier, and explain how using debt can amplify returns but also increase risk. Use your selected company\'s actual metrics as examples.'
       },
       {
         id: 7,
         type: 'written',
-        question: 'Analyze the financial metrics for the company you selected. Discuss their P/E ratio, profitability metrics (ROE/ROA), and debt levels. Are these metrics attractive for investment? Consider both the absolute values and what they suggest about the company\'s financial health.',
-        guidance: 'Your answer should cite specific numbers, compare them to reasonable benchmarks, and explain what these metrics reveal about the company\'s valuation, profitability, and risk profile.'
+        question: 'Analyze the financial metrics for your selected company. Discuss their P/E ratio, profitability metrics (ROE/ROA), and debt levels. Are these metrics attractive for investment? Consider both the absolute values and what they suggest about the company\'s financial health.',
+        guidance: 'Your answer should cite specific numbers from your selected company, compare them to reasonable benchmarks, and explain what these metrics reveal about the company\'s valuation, profitability, and risk profile.'
       }
     ]
   },
@@ -196,13 +196,13 @@ const MODULE_CONTENT: Record<string, any> = {
         id: 6,
         type: 'written',
         question: 'Compare the risk factors section of your selected company to a competitor. What differences do you notice in how they describe similar risks? What does this tell you about each company\'s risk management?',
-        guidance: 'Focus on how specific and detailed each company is in describing risks. Consider whether one company seems more aware of challenges or better at communicating them.'
+        guidance: 'Focus on how specific and detailed each company is in describing risks. Consider whether one company seems more aware of challenges or better at communicating them. Make sure to clearly identify your selected company and the competitor you\'re comparing it to.'
       },
       {
         id: 7,
         type: 'written',
         question: 'Based on the business description and risk factors for your selected company, evaluate their competitive position and major risks. Identify the top 3 risks and assess whether management has competitive advantages that might mitigate these risks.',
-        guidance: 'Cite specific details from the business description and risk factors. Explain why certain risks are more significant than others and how the company\'s business model addresses or is vulnerable to these risks.'
+        guidance: 'Cite specific details from your selected company\'s business description and risk factors. Explain why certain risks are more significant than others and how the company\'s business model addresses or is vulnerable to these risks.'
       }
     ]
   },
@@ -313,8 +313,8 @@ const MODULE_CONTENT: Record<string, any> = {
       {
         id: 7,
         type: 'written',
-        question: 'Explain the difference between operating cash flow and free cash flow. Why is free cash flow important for investors?',
-        guidance: 'Describe what each metric represents, how they differ, and why free cash flow is a key indicator of a company\'s financial health and ability to return value to shareholders.'
+        question: 'Explain the difference between operating cash flow and free cash flow. Why is free cash flow important for investors? Use your selected company\'s financial statements to illustrate these concepts.',
+        guidance: 'Describe what each metric represents, how they differ, and why free cash flow is a key indicator of a company\'s financial health and ability to return value to shareholders. Reference your selected company\'s actual cash flow data.'
       },
       {
         id: 8,
@@ -798,10 +798,49 @@ export default function ModulePage() {
   }
 
   const companyData = selectedCompany ? get10KNarrative(selectedCompany) : null;
+  const selectedCompanyName = selectedCompany && companyData ? companyData.companyName : null;
+
+  // Customize questions based on selected company
+  const getCustomizedQuestions = () => {
+    if (!selectedCompany || !companyData) {
+      return content.questions;
+    }
+
+    return content.questions.map((q: any) => {
+      // Only customize written questions (MCQ questions stay generic)
+      if (q.type === 'written') {
+        // Replace placeholders in questions
+        let customizedQuestion = q.question
+          .replace(/your selected company/gi, companyData.companyName)
+          .replace(/the company you selected/gi, companyData.companyName)
+          .replace(/selected company/gi, companyData.companyName)
+          .replace(/this company/gi, companyData.companyName)
+          .replace(/the company/gi, companyData.companyName);
+
+        // If question doesn't mention company, add it
+        if (!customizedQuestion.toLowerCase().includes(companyData.companyName.toLowerCase()) && 
+            !customizedQuestion.toLowerCase().includes(selectedCompany.toLowerCase())) {
+          customizedQuestion = `For ${companyData.companyName} (${selectedCompany}): ${customizedQuestion}`;
+        }
+
+        return {
+          ...q,
+          question: customizedQuestion,
+          originalQuestion: q.question // Keep original for reference
+        };
+      }
+      return q;
+    });
+  };
+
+  const customizedQuestions = getCustomizedQuestions();
 
   const handleCompanySelect = (symbol: string) => {
     setSelectedCompany(symbol);
     setCurrentStep('lesson');
+    // Clear answers and feedback when changing company
+    setAnswers({});
+    setFeedback({});
   };
 
   const handleSubmitMCQ = async (questionId: number, answer: string) => {
@@ -871,7 +910,7 @@ export default function ModulePage() {
   const handleSubmitWritten = async (questionId: number) => {
     setIsSubmitting(true);
     
-    const question = content.questions.find((q: any) => q.id === questionId);
+    const question = customizedQuestions.find((q: any) => q.id === questionId);
     const answer = answers[questionId];
     
     if (!answer || answer.length < 50) {
@@ -903,7 +942,9 @@ export default function ModulePage() {
           questionText: question.question,
           answerText: answer,
           context: companyContext,
-          symbol: selectedCompany
+          symbol: selectedCompany,
+          expectedCompanyName: companyData?.companyName || null,
+          expectedCompanySymbol: selectedCompany || null
         }),
       });
 
@@ -1127,7 +1168,14 @@ export default function ModulePage() {
       {/* Questions */}
       {currentStep === 'questions' && (
         <div className="space-y-6">
-          {content.questions.map((question: any, index: number) => (
+          {!selectedCompany && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-muted-foreground">Please select a company first to view questions.</p>
+              </CardContent>
+            </Card>
+          )}
+          {selectedCompany && customizedQuestions.map((question: any, index: number) => (
             <Card key={question.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">

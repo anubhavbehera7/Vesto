@@ -7,6 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, formatPercent } from '@/lib/utils/format';
+import { createClient } from '@/lib/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Company {
   id: number;
@@ -68,10 +71,68 @@ export default function SimulatorPage() {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [pitch, setPitch] = useState('');
   const [feedback, setFeedback] = useState<any>(null);
-  const [portfolio] = useState([]);
+  const [portfolio, setPortfolio] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllMetrics, setShowAllMetrics] = useState(false);
-  const cash = 10000;
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSubmittingPitch, setIsSubmittingPitch] = useState(false);
+  const [investmentAmount, setInvestmentAmount] = useState('');
+  const [isInvesting, setIsInvesting] = useState(false);
+  const initialCash = 10000;
+
+  // Load portfolio holdings
+  const loadPortfolio = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/portfolio?userId=${userId}`);
+      const result = await response.json();
+      if (result.data) {
+        // Update holdings with current prices from companyData
+        const updatedHoldings = result.data.map((holding: any) => {
+          const companyInfo = companyData[holding.symbol];
+          const currentPrice = companyInfo?.quote?.current_price || holding.buy_price;
+          const currentValue = holding.shares * currentPrice;
+          const costBasis = holding.shares * holding.buy_price;
+          const gainLoss = currentValue - costBasis;
+          const gainLossPercent = costBasis > 0 ? (gainLoss / costBasis) * 100 : 0;
+          
+          return {
+            ...holding,
+            current_price: currentPrice,
+            current_value: currentValue,
+            gain_loss: gainLoss,
+            gain_loss_percent: gainLossPercent
+          };
+        });
+        setPortfolio(updatedHoldings);
+      }
+    } catch (error) {
+      console.error('Error loading portfolio:', error);
+    }
+  };
+
+  // Get authenticated user and load portfolio
+  useEffect(() => {
+    async function getUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+      
+      if (user?.id) {
+        // Wait for companyData to load before loading portfolio
+        if (Object.keys(companyData).length > 0) {
+          loadPortfolio(user.id);
+        }
+      }
+    }
+    getUser();
+  }, []);
+
+  // Reload portfolio when companyData updates (for current prices)
+  useEffect(() => {
+    if (userId && Object.keys(companyData).length > 0) {
+      loadPortfolio(userId);
+    }
+  }, [companyData, userId]);
 
   // Load all companies with their data in a single API call (from cached database)
   useEffect(() => {
@@ -175,7 +236,19 @@ export default function SimulatorPage() {
     : 1;
 
   const handleSubmitPitch = async () => {
-    if (!selectedStock || pitch.length < 50) {
+    console.log('handleSubmitPitch called', { selectedStock, pitchLength: pitch.length, userId });
+    
+    if (!selectedStock) {
+      console.log('No stock selected');
+      setFeedback({
+        status: 'rejected',
+        message: 'Please select a stock first.',
+      });
+      return;
+    }
+
+    if (pitch.length < 50) {
+      console.log('Pitch too short');
       setFeedback({
         status: 'rejected',
         message: 'Please provide a more detailed analysis (minimum 50 characters).',
@@ -183,35 +256,170 @@ export default function SimulatorPage() {
       return;
     }
 
+    if (!userId) {
+      console.log('No user ID');
+      setFeedback({
+        status: 'rejected',
+        message: 'Please log in to submit a pitch.',
+      });
+      return;
+    }
+
+    setIsSubmittingPitch(true);
+    setFeedback(null); // Clear previous feedback
+
     try {
+      console.log('Submitting pitch to API...', {
+        userId,
+        symbol: selectedStock.symbol,
+        companyName: selectedStock.name,
+        pitchLength: pitch.length
+      });
+
       // Call the actual API to submit pitch
       const response = await fetch('/api/simulator/pitch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo-user', // TODO: Replace with actual user ID from auth
+          userId: userId,
           symbol: selectedStock.symbol,
           companyName: selectedStock.name,
           pitchText: pitch
         })
       });
 
+      console.log('API response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API error:', errorData);
+        throw new Error(errorData.details || errorData.error || 'Failed to submit pitch');
+      }
+
       const result = await response.json();
+      console.log('API result:', result);
+
       if (result.data) {
         setFeedback({
           status: result.data.review.status,
           message: result.data.review.feedback,
-          score: result.data.review.score
+          score: result.data.review.score,
+          submissionId: result.data.submission?.id
         });
+        
+        // Reload portfolio if pitch was approved and already invested
+        if (result.data.review.status === 'approved' && userId) {
+          loadPortfolio(userId);
+        }
+      } else {
+        throw new Error('Invalid response from server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting pitch:', error);
       setFeedback({
         status: 'rejected',
-        message: 'Failed to submit pitch. Please try again.',
+        message: error?.message || 'Failed to submit pitch. Please try again.',
       });
+    } finally {
+      setIsSubmittingPitch(false);
     }
   };
+
+  const handleInvest = async () => {
+    if (!selectedStock || !userId || !investmentAmount) {
+      return;
+    }
+
+    const amount = parseFloat(investmentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setFeedback({
+        ...feedback,
+        message: 'Please enter a valid investment amount.',
+      });
+      return;
+    }
+
+    const currentPrice = selectedStock.price;
+    if (currentPrice <= 0) {
+      setFeedback({
+        ...feedback,
+        message: 'Unable to get current stock price. Please try again.',
+      });
+      return;
+    }
+
+    const shares = Math.floor(amount / currentPrice);
+    if (shares <= 0) {
+      setFeedback({
+        ...feedback,
+        message: 'Investment amount is too small to buy any shares.',
+      });
+      return;
+    }
+
+    const actualInvestment = shares * currentPrice;
+    const availableCash = initialCash - portfolio.reduce((sum, h) => sum + (h.shares * h.buy_price), 0);
+    
+    if (actualInvestment > availableCash) {
+      setFeedback({
+        ...feedback,
+        message: `Insufficient funds. Available: ${formatCurrency(availableCash)}`,
+      });
+      return;
+    }
+
+    setIsInvesting(true);
+
+    try {
+      const response = await fetch('/api/portfolio/invest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          symbol: selectedStock.symbol,
+          companyName: selectedStock.name,
+          shares: shares,
+          buyPrice: currentPrice,
+          investmentAmount: actualInvestment,
+          pitchSubmissionId: feedback.submissionId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || 'Failed to invest');
+      }
+
+      const result = await response.json();
+      
+      // Reload portfolio
+      if (userId) {
+        await loadPortfolio(userId);
+      }
+
+      // Clear investment form
+      setInvestmentAmount('');
+      setFeedback({
+        ...feedback,
+        message: `Successfully invested ${formatCurrency(actualInvestment)} in ${selectedStock.symbol} (${shares} shares).`,
+      });
+    } catch (error: any) {
+      console.error('Error investing:', error);
+      setFeedback({
+        ...feedback,
+        message: error?.message || 'Failed to complete investment. Please try again.',
+      });
+    } finally {
+      setIsInvesting(false);
+    }
+  };
+
+  // Calculate portfolio totals
+  const totalHoldingsValue = portfolio.reduce((sum, h) => sum + (h.current_value || 0), 0);
+  const totalCostBasis = portfolio.reduce((sum, h) => sum + (h.shares * h.buy_price), 0);
+  const totalGainLoss = totalHoldingsValue - totalCostBasis;
+  const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+  const availableCash = initialCash - totalCostBasis;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -287,25 +495,53 @@ export default function SimulatorPage() {
           <CardHeader>
             <CardTitle>My Portfolio</CardTitle>
             <CardDescription>
-              Total Assets: <span className="font-medium">{formatCurrency(cash)}</span>
+              Total Assets: <span className="font-medium">{formatCurrency(initialCash + totalGainLoss)}</span>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 space-y-1">
+            <div className="mb-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Total Holdings</span>
-                <span>{formatCurrency(0)}</span>
+                <span className="font-medium">{formatCurrency(totalHoldingsValue)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Available Cash</span>
-                <span>{formatCurrency(cash)}</span>
+                <span className="font-medium">{formatCurrency(availableCash)}</span>
+              </div>
+              <div className="flex justify-between text-sm pt-2 border-t">
+                <span>Total Gain/Loss</span>
+                <span className={`font-medium ${totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss)} ({totalGainLossPercent >= 0 ? '+' : ''}{formatPercent(totalGainLossPercent, 2)})
+                </span>
               </div>
             </div>
             {portfolio.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Get a pitch approved to start investing!
               </p>
-            ) : null}
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm font-medium mb-2">Holdings:</p>
+                {portfolio.map((holding) => (
+                  <div key={holding.id} className="p-2 border rounded text-sm">
+                    <div className="flex justify-between items-start mb-1">
+                      <div>
+                        <span className="font-medium">{holding.symbol}</span>
+                        <span className="text-muted-foreground ml-2">{holding.shares} shares</span>
+                      </div>
+                      <span className={`font-medium ${holding.gain_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {holding.gain_loss >= 0 ? '+' : ''}{formatPercent(holding.gain_loss_percent || 0, 2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Avg: {formatCurrency(holding.buy_price)}</span>
+                      <span>Current: {formatCurrency(holding.current_price || holding.buy_price)}</span>
+                      <span>Value: {formatCurrency(holding.current_value || 0)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -558,8 +794,12 @@ export default function SimulatorPage() {
                     onChange={(e) => setPitch(e.target.value)}
                     rows={8}
                   />
-                  <Button onClick={handleSubmitPitch} className="w-full">
-                    Submit Pitch to PM
+                  <Button 
+                    onClick={handleSubmitPitch} 
+                    className="w-full"
+                    disabled={isSubmittingPitch || !pitch || pitch.length < 50}
+                  >
+                    {isSubmittingPitch ? 'Submitting to AI Portfolio Manager...' : 'Submit Pitch to AI Portfolio Manager'}
                   </Button>
 
                   {feedback && (
@@ -569,11 +809,46 @@ export default function SimulatorPage() {
                           <Badge variant={feedback.status === 'approved' ? 'default' : 'destructive'}>
                             {feedback.status}
                           </Badge>
-                          <CardTitle className="text-lg">PM Feedback</CardTitle>
+                          <CardTitle className="text-lg">AI Portfolio Manager Feedback</CardTitle>
                         </div>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="space-y-4">
                         <p className="text-sm">{feedback.message}</p>
+                        
+                        {feedback.status === 'approved' && selectedStock && (
+                          <div className="pt-4 border-t space-y-4">
+                            <div>
+                              <Label htmlFor="investmentAmount" className="text-sm font-medium">
+                                Investment Amount (Available: {formatCurrency(availableCash)})
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  id="investmentAmount"
+                                  type="number"
+                                  placeholder="Enter amount"
+                                  value={investmentAmount}
+                                  onChange={(e) => setInvestmentAmount(e.target.value)}
+                                  min="0"
+                                  max={availableCash}
+                                  step="0.01"
+                                  disabled={isInvesting}
+                                />
+                                <Button 
+                                  onClick={handleInvest}
+                                  disabled={isInvesting || !investmentAmount || parseFloat(investmentAmount) <= 0}
+                                  className="whitespace-nowrap"
+                                >
+                                  {isInvesting ? 'Investing...' : 'Invest'}
+                                </Button>
+                              </div>
+                              {investmentAmount && parseFloat(investmentAmount) > 0 && selectedStock.price > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  You'll buy approximately {Math.floor(parseFloat(investmentAmount) / selectedStock.price)} shares at {formatCurrency(selectedStock.price)} per share
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
