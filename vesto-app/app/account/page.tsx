@@ -4,21 +4,21 @@ import { Button } from "@/components/ui/button";
 export default function AccountPage() {
   // Mock account data
   const account = {
-    name: 'Demo User',
-    email: 'demo@vesto.app',
+    name: 'Alex Johnson',
+    email: 'alex.johnson@example.com',
     stats: {
-      pitches: 0,
-      approved: 0,
-      accuracy: 0,
+      pitches: 12,
+      approved: 8,
+      accuracy: 67,
     }
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Account</h1>
         <p className="text-muted-foreground">
-          Manage your profile and settings
+          Manage your profile and settings.
         </p>
       </div>
 
@@ -28,13 +28,13 @@ export default function AccountPage() {
           <CardDescription>This is how your profile appears</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col space-y-1">
-            <span className="text-sm font-medium text-muted-foreground">Name</span>
-            <span className="text-lg">{account.name}</span>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Name</p>
+            <p className="text-lg">{account.name}</p>
           </div>
-          <div className="flex flex-col space-y-1">
-            <span className="text-sm font-medium text-muted-foreground">Email</span>
-            <span className="text-lg">{account.email}</span>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">Email</p>
+            <p className="text-lg">{account.email}</p>
           </div>
         </CardContent>
         <CardFooter>
@@ -80,17 +80,6 @@ export default function AccountPage() {
         </CardFooter>
       </Card>
 
-      <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
-        <CardHeader>
-          <CardTitle className="text-lg">MVP Note</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm">
-          <p>
-            This is a demo MVP. In production, authentication will be handled by NextAuth with email/Google login,
-            and all user data will be stored in Supabase with proper session management.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

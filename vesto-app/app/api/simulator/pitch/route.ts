@@ -43,6 +43,10 @@ Key Metrics: P/E ${fundamentals?.pe_ratio}, ROE ${fundamentals?.roe}%, Debt/Equi
       ai_feedback: review.feedback,
       ai_score: review.score,
       invested: false,
+      investment_amount: null,
+      shares_purchased: null,
+      purchase_price: null,
+      invested_at: null,
       submitted_at: new Date().toISOString(),
       reviewed_at: new Date().toISOString()
     });
