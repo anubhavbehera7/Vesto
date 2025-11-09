@@ -11,7 +11,6 @@ import { MODULES } from '@/types';
 import { get10KNarrative } from '@/lib/mock-data/10k-narratives';
 import { createClient } from '@/lib/supabase/client';
 import { ChevronLeft, CheckCircle2, XCircle } from 'lucide-react';
-import Link from 'next/link';
 
 const MODULE_CONTENT: Record<string, any> = {
   'module-1': {
@@ -44,6 +43,64 @@ const MODULE_CONTENT: Record<string, any> = {
       },
       {
         id: 2,
+        type: 'mcq',
+        question: 'EBITDA is useful for comparing companies because it:',
+        options: [
+          { label: 'A', text: 'Includes all expenses to show true profitability' },
+          { label: 'B', text: 'Eliminates the impact of different tax structures and accounting methods' },
+          { label: 'C', text: 'Shows cash flow directly' },
+          { label: 'D', text: 'Is always higher than net income' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'EBITDA removes interest, taxes, depreciation, and amortization, making it easier to compare operating profitability across companies with different capital structures and tax situations.'
+      },
+      {
+        id: 3,
+        type: 'mcq',
+        question: 'A company with a ROE of 25% and a D/E ratio of 0.5 is likely:',
+        options: [
+          { label: 'A', text: 'Highly leveraged and risky' },
+          { label: 'B', text: 'Efficiently using equity with moderate leverage' },
+          { label: 'C', text: 'Not using debt effectively' },
+          { label: 'D', text: 'Overvalued' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'A ROE of 25% indicates strong profitability, while a D/E of 0.5 shows moderate, manageable leverage. This combination suggests efficient use of both equity and debt.'
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        question: 'Which statement about P/E ratios is FALSE?',
+        options: [
+          { label: 'A', text: 'P/E ratios should be compared within the same industry' },
+          { label: 'B', text: 'A high P/E always means a stock is overvalued' },
+          { label: 'C', text: 'P/E ratios can vary based on growth expectations' },
+          { label: 'D', text: 'Negative P/E ratios indicate the company is losing money' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'A high P/E ratio doesn\'t always mean overvaluation. It could reflect strong growth prospects, competitive advantages, or market confidence. Context and comparison to peers are essential.'
+      },
+      {
+        id: 5,
+        type: 'mcq',
+        question: 'What does a D/E ratio of 2.0 indicate?',
+        options: [
+          { label: 'A', text: 'The company has twice as much equity as debt' },
+          { label: 'B', text: 'The company has twice as much debt as equity' },
+          { label: 'C', text: 'The company has equal debt and equity' },
+          { label: 'D', text: 'The company has no debt' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'A D/E ratio of 2.0 means the company has $2 of debt for every $1 of equity, indicating higher leverage and potentially higher financial risk.'
+      },
+      {
+        id: 6,
+        type: 'written',
+        question: 'Explain the relationship between ROE, ROA, and financial leverage. How does debt affect these ratios?',
+        guidance: 'Describe how ROE = ROA × Equity Multiplier, and explain how using debt can amplify returns but also increase risk. Use specific examples if possible.'
+      },
+      {
+        id: 7,
         type: 'written',
         question: 'Analyze the financial metrics for the company you selected. Discuss their P/E ratio, profitability metrics (ROE/ROA), and debt levels. Are these metrics attractive for investment? Consider both the absolute values and what they suggest about the company\'s financial health.',
         guidance: 'Your answer should cite specific numbers, compare them to reasonable benchmarks, and explain what these metrics reveal about the company\'s valuation, profitability, and risk profile.'
@@ -85,6 +142,64 @@ const MODULE_CONTENT: Record<string, any> = {
       },
       {
         id: 2,
+        type: 'mcq',
+        question: 'A company\'s business description section should help you understand:',
+        options: [
+          { label: 'A', text: 'Only what products they sell' },
+          { label: 'B', text: 'Revenue streams, competitive position, and business model' },
+          { label: 'C', text: 'Only their financial performance' },
+          { label: 'D', text: 'Only their future plans' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'The business description provides comprehensive information about how the company makes money, its competitive advantages, market position, and overall business strategy.'
+      },
+      {
+        id: 3,
+        type: 'mcq',
+        question: 'Which type of risk is LEAST likely to be disclosed in a 10-K?',
+        options: [
+          { label: 'A', text: 'Regulatory risks from changing laws' },
+          { label: 'B', text: 'Competition from new market entrants' },
+          { label: 'C', text: 'Specific future product launch dates' },
+          { label: 'D', text: 'Supply chain disruptions' }
+        ],
+        correctAnswer: 'C',
+        explanation: 'Companies disclose risks but typically don\'t reveal specific future product launch dates in risk factors, as this is forward-looking information that could be considered material non-public information.'
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        question: 'A company that provides very generic, boilerplate risk factors is likely:',
+        options: [
+          { label: 'A', text: 'Very safe with no real risks' },
+          { label: 'B', text: 'Either hiding real risks or not properly analyzing them' },
+          { label: 'C', text: 'Following best practices' },
+          { label: 'D', text: 'Required by law to be vague' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'Generic risk factors may indicate poor risk management or an attempt to hide specific vulnerabilities. Well-managed companies typically provide detailed, specific risk disclosures.'
+      },
+      {
+        id: 5,
+        type: 'mcq',
+        question: 'When evaluating competitive risks, you should look for:',
+        options: [
+          { label: 'A', text: 'Only the number of competitors mentioned' },
+          { label: 'B', text: 'Specific competitive threats, market share trends, and pricing pressures' },
+          { label: 'C', text: 'Only positive statements about competition' },
+          { label: 'D', text: 'Only financial metrics' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'Effective competitive risk analysis requires understanding specific threats, market dynamics, pricing pressures, and how the company positions itself against competitors.'
+      },
+      {
+        id: 6,
+        type: 'written',
+        question: 'Compare the risk factors section of your selected company to a competitor. What differences do you notice in how they describe similar risks? What does this tell you about each company\'s risk management?',
+        guidance: 'Focus on how specific and detailed each company is in describing risks. Consider whether one company seems more aware of challenges or better at communicating them.'
+      },
+      {
+        id: 7,
         type: 'written',
         question: 'Based on the business description and risk factors for your selected company, evaluate their competitive position and major risks. Identify the top 3 risks and assess whether management has competitive advantages that might mitigate these risks.',
         guidance: 'Cite specific details from the business description and risk factors. Explain why certain risks are more significant than others and how the company\'s business model addresses or is vulnerable to these risks.'
@@ -132,6 +247,77 @@ const MODULE_CONTENT: Record<string, any> = {
       },
       {
         id: 2,
+        type: 'mcq',
+        question: 'The balance sheet shows:',
+        options: [
+          { label: 'A', text: 'A company\'s financial position at a specific point in time' },
+          { label: 'B', text: 'Revenue and expenses over a period' },
+          { label: 'C', text: 'Cash movements over time' },
+          { label: 'D', text: 'Only assets' }
+        ],
+        correctAnswer: 'A',
+        explanation: 'The balance sheet is a snapshot showing assets, liabilities, and equity at a specific date, while income and cash flow statements show changes over time periods.'
+      },
+      {
+        id: 3,
+        type: 'mcq',
+        question: 'A current ratio of 0.8 indicates:',
+        options: [
+          { label: 'A', text: 'The company has strong liquidity' },
+          { label: 'B', text: 'The company may struggle to pay short-term obligations' },
+          { label: 'C', text: 'The company has no current liabilities' },
+          { label: 'D', text: 'The company is highly profitable' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'A current ratio below 1.0 means current liabilities exceed current assets, indicating potential liquidity problems and difficulty meeting short-term obligations.'
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        question: 'Free Cash Flow is calculated as:',
+        options: [
+          { label: 'A', text: 'Operating Cash Flow - Capital Expenditures' },
+          { label: 'B', text: 'Net Income - Dividends' },
+          { label: 'C', text: 'Revenue - Expenses' },
+          { label: 'D', text: 'Total Cash - Total Debt' }
+        ],
+        correctAnswer: 'A',
+        explanation: 'Free Cash Flow represents cash available after maintaining or expanding asset base. It\'s Operating Cash Flow minus Capital Expenditures, showing cash available for dividends, buybacks, or debt reduction.'
+      },
+      {
+        id: 5,
+        type: 'mcq',
+        question: 'If gross margin is declining while revenue is growing, this suggests:',
+        options: [
+          { label: 'A', text: 'The company is becoming more efficient' },
+          { label: 'B', text: 'Pricing pressure or rising costs are squeezing profitability' },
+          { label: 'C', text: 'The company has no competition' },
+          { label: 'D', text: 'The company is gaining market share' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'Declining gross margins typically indicate competitive pricing pressure, rising input costs, or a shift to lower-margin products, even if revenue is growing.'
+      },
+      {
+        id: 6,
+        type: 'mcq',
+        question: 'Which statement about the income statement is TRUE?',
+        options: [
+          { label: 'A', text: 'It shows cash movements' },
+          { label: 'B', text: 'It uses accrual accounting, so revenue may not equal cash received' },
+          { label: 'C', text: 'It only shows assets and liabilities' },
+          { label: 'D', text: 'It is always the same as cash flow' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'The income statement uses accrual accounting, recognizing revenue when earned (not necessarily when cash is received) and expenses when incurred, which can differ significantly from actual cash flows.'
+      },
+      {
+        id: 7,
+        type: 'written',
+        question: 'Explain the difference between operating cash flow and free cash flow. Why is free cash flow important for investors?',
+        guidance: 'Describe what each metric represents, how they differ, and why free cash flow is a key indicator of a company\'s financial health and ability to return value to shareholders.'
+      },
+      {
+        id: 8,
         type: 'written',
         question: 'Analyze your selected company\'s financial statements. Evaluate their revenue growth, profitability margins (gross and operating), and cash flow generation. Is the company generating profitable growth? Are there any concerning trends in the relationships between revenue, profit, and cash flow?',
         guidance: 'Use specific numbers and percentages. Compare margins to prior periods and industry averages if possible. Discuss whether the business model generates strong cash conversion from profits.'
@@ -183,6 +369,64 @@ const MODULE_CONTENT: Record<string, any> = {
       },
       {
         id: 2,
+        type: 'mcq',
+        question: 'Network effects occur when:',
+        options: [
+          { label: 'A', text: 'A company has many employees' },
+          { label: 'B', text: 'A product becomes more valuable as more people use it' },
+          { label: 'C', text: 'A company operates in multiple countries' },
+          { label: 'D', text: 'A company has many suppliers' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'Network effects create a competitive moat where the value of a product or service increases with each additional user, making it harder for competitors to gain traction.'
+      },
+      {
+        id: 3,
+        type: 'mcq',
+        question: 'Switching costs are highest for:',
+        options: [
+          { label: 'A', text: 'Commodity products with many alternatives' },
+          { label: 'B', text: 'Products that require significant time, money, or effort to replace' },
+          { label: 'C', text: 'Products that are easily replaceable' },
+          { label: 'D', text: 'Products with no learning curve' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'High switching costs create a moat by making it expensive or difficult for customers to switch to competitors, often due to integration, training, or data migration requirements.'
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        question: 'A company with stable or expanding profit margins over 10 years likely has:',
+        options: [
+          { label: 'A', text: 'No competition' },
+          { label: 'B', text: 'A sustainable competitive advantage protecting pricing power' },
+          { label: 'C', text: 'Rising costs that are being passed to customers' },
+          { label: 'D', text: 'Declining market share' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'Maintaining or expanding margins over long periods despite competition suggests strong competitive advantages, pricing power, or cost advantages that protect profitability.'
+      },
+      {
+        id: 5,
+        type: 'mcq',
+        question: 'Which is NOT a type of economic moat?',
+        options: [
+          { label: 'A', text: 'Network effects' },
+          { label: 'B', text: 'Cost advantages from scale' },
+          { label: 'C', text: 'High stock price' },
+          { label: 'D', text: 'Intangible assets like patents or brand' }
+        ],
+        correctAnswer: 'C',
+        explanation: 'A high stock price is a valuation metric, not a competitive advantage. Moats are structural advantages like network effects, cost advantages, switching costs, or intangible assets.'
+      },
+      {
+        id: 6,
+        type: 'written',
+        question: 'Explain how a company can have a cost advantage moat. What factors create sustainable cost advantages, and how can you identify them in financial statements?',
+        guidance: 'Discuss economies of scale, proprietary technology, access to resources, and other cost advantages. Explain how these might show up in gross margins, operating margins, or ROIC metrics.'
+      },
+      {
+        id: 7,
         type: 'written',
         question: 'Identify and analyze the competitive moats for your selected company. What type of moat do they possess (network effects, switching costs, cost advantages, brand, etc.)? Is this moat sustainable or at risk? Support your analysis with evidence from their business model, market position, and financial performance.',
         guidance: 'Be specific about the type of moat and provide concrete evidence. Consider potential threats to the moat and whether competitive advantages are strengthening or weakening. Use margin trends and market share as supporting evidence.'
@@ -247,6 +491,77 @@ const MODULE_CONTENT: Record<string, any> = {
       },
       {
         id: 2,
+        type: 'mcq',
+        question: 'The PEG ratio (P/E divided by growth rate) helps evaluate:',
+        options: [
+          { label: 'A', text: 'Only the P/E ratio' },
+          { label: 'B', text: 'Valuation relative to growth expectations' },
+          { label: 'C', text: 'Only profitability' },
+          { label: 'D', text: 'Only debt levels' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'PEG ratio adjusts P/E for growth rate, helping determine if a stock is fairly valued relative to its growth prospects. A PEG below 1.0 may indicate undervaluation relative to growth.'
+      },
+      {
+        id: 3,
+        type: 'mcq',
+        question: 'When comparing two companies, you should prioritize:',
+        options: [
+          { label: 'A', text: 'Only the cheaper valuation' },
+          { label: 'B', text: 'Only the highest growth rate' },
+          { label: 'C', text: 'A combination of business quality, financial performance, and reasonable valuation' },
+          { label: 'D', text: 'Only the largest market cap' }
+        ],
+        correctAnswer: 'C',
+        explanation: 'Effective comparative analysis requires evaluating business quality, competitive advantages, financial performance, and valuation together. The best investment often balances quality with reasonable price.'
+      },
+      {
+        id: 4,
+        type: 'mcq',
+        question: 'A margin of safety in valuation means:',
+        options: [
+          { label: 'A', text: 'Buying at any price' },
+          { label: 'B', text: 'Buying at a discount to estimated intrinsic value to account for uncertainty' },
+          { label: 'C', text: 'Only buying the cheapest stock' },
+          { label: 'D', text: 'Ignoring valuation entirely' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'A margin of safety provides a buffer against estimation errors and unexpected challenges, buying below estimated fair value to protect against downside risk.'
+      },
+      {
+        id: 5,
+        type: 'mcq',
+        question: 'EV/EBITDA is particularly useful for comparing:',
+        options: [
+          { label: 'A', text: 'Only tech companies' },
+          { label: 'B', text: 'Capital-intensive businesses with different debt levels' },
+          { label: 'C', text: 'Only profitable companies' },
+          { label: 'D', text: 'Only small companies' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'EV/EBITDA normalizes for capital structure differences, making it useful for comparing companies with varying debt levels, especially in capital-intensive industries.'
+      },
+      {
+        id: 6,
+        type: 'mcq',
+        question: 'When a high-quality business trades at a premium valuation, it may still be attractive if:',
+        options: [
+          { label: 'A', text: 'It\'s always a bad investment' },
+          { label: 'B', text: 'The premium is justified by superior growth, margins, and competitive advantages' },
+          { label: 'C', text: 'It has high debt' },
+          { label: 'D', text: 'It has declining revenue' }
+        ],
+        correctAnswer: 'B',
+        explanation: 'Quality businesses with strong competitive advantages, superior growth, and high returns on capital often deserve premium valuations. The key is whether the premium is justified by fundamentals.'
+      },
+      {
+        id: 7,
+        type: 'written',
+        question: 'Explain the concept of "margin of safety" in investment analysis. How would you apply this when comparing two investment opportunities?',
+        guidance: 'Define margin of safety, explain why it matters, and describe how you would use it to make investment decisions when comparing companies with different valuations and quality levels.'
+      },
+      {
+        id: 8,
         type: 'written',
         question: 'Compare your selected company to one of its major competitors. Analyze both companies across business model, competitive positioning, financial metrics (growth, margins, ROIC), and valuation. Which company represents the better investment opportunity and why? Consider both the quality of the business and the price you\'re paying.',
         guidance: 'This is expert-level analysis. Provide a balanced view covering qualitative factors (business quality, moats, risks) and quantitative metrics (growth, profitability, valuation). Make a clear recommendation with supporting reasoning. Your analysis should demonstrate synthesis of all concepts from previous modules.'
@@ -290,9 +605,12 @@ export default function ModulePage() {
     getUser();
   }, []);
 
-  // Function to save progress to database using client-side Supabase
+  // Function to save progress to database using API route for better reliability
   const saveProgress = async (currentFeedback: Record<number, any>, completedQuestions: number, totalQuestions: number) => {
-    if (!userId || saveInProgressRef.current) return;
+    if (!userId || saveInProgressRef.current) {
+      console.warn('Cannot save progress: userId missing or save in progress', { userId, saveInProgress: saveInProgressRef.current });
+      return;
+    }
 
     saveInProgressRef.current = true;
     setIsSaving(true);
@@ -313,66 +631,136 @@ export default function ModulePage() {
         } else if (question.type === 'written' && fb.overall_score !== undefined) {
           totalScore += fb.overall_score;
           scoredCount++;
+          // Written answers scoring 70+ are considered correct
+          if (fb.overall_score >= 70) correctAnswers++;
         }
       }
     });
 
     const averageScore = scoredCount > 0 ? totalScore / scoredCount : 0;
+    const status = completionPercentage === 100 ? 'completed' : completionPercentage > 0 ? 'in_progress' : 'not_started';
 
     try {
+      // First, verify user is authenticated
       const supabase = createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      // First, check if progress exists to preserve timestamps
-      const { data: existing } = await supabase
-        .from('user_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('module_id', moduleId)
-        .maybeSingle();
-
-      const status = completionPercentage === 100 ? 'completed' : completionPercentage > 0 ? 'in_progress' : 'not_started';
-      
-      const updateData: any = {
-        user_id: userId,
-        module_id: moduleId,
-        completion_percentage: completionPercentage,
-        status: status,
-        total_questions: totalQuestions,
-        correct_answers: correctAnswers,
-        average_score: Math.round(averageScore),
-        last_accessed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      // Preserve or set started_at
-      if (status === 'in_progress' && !existing?.started_at) {
-        updateData.started_at = new Date().toISOString();
-      } else if (existing?.started_at) {
-        updateData.started_at = existing.started_at;
+      if (authError || !user) {
+        console.error('User not authenticated:', authError);
+        throw new Error('User not authenticated');
       }
 
-      // Preserve or set completed_at
-      if (completionPercentage === 100 && !existing?.completed_at) {
-        updateData.completed_at = new Date().toISOString();
-      } else if (existing?.completed_at) {
-        updateData.completed_at = existing.completed_at;
+      if (user.id !== userId) {
+        console.error('User ID mismatch:', { expected: userId, actual: user.id });
+        throw new Error('User ID mismatch');
       }
 
-      // Upsert progress
-      const { error, data: savedData } = await supabase
-        .from('user_progress')
-        .upsert(updateData, {
-          onConflict: 'user_id,module_id'
-        })
-        .select();
-      
-      if (error) {
-        console.error('Error saving progress:', error);
-      } else {
-        console.log(`Progress saved for ${moduleId}: ${completionPercentage}%`, savedData);
+      // Use API route for more reliable server-side saving
+      const response = await fetch(`/api/progress/${moduleId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          completionPercentage,
+          status,
+          totalQuestions,
+          correctAnswers,
+          averageScore: Math.round(averageScore),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to save progress: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Error saving progress:', error);
+
+      const result = await response.json();
+      console.log(`Progress saved successfully for ${moduleId}: ${completionPercentage}%`, result.data);
+      
+      // Fallback: Also try direct client save if API route fails (for debugging)
+    } catch (error: any) {
+      console.error('Error saving progress via API route, trying direct client save:', error);
+      
+      // Fallback to direct client-side save
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('User not authenticated for fallback save');
+        }
+
+        // Ensure user exists in users table (client-side might not have permission, but try anyway)
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!existingUser) {
+          // Try to create user (may fail due to RLS, but worth trying)
+          await supabase
+            .from('users')
+            .insert({
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || null,
+            });
+        }
+
+        const updateData: any = {
+          user_id: user.id,
+          module_id: moduleId,
+          completion_percentage: completionPercentage,
+          status: status,
+          total_questions: totalQuestions,
+          correct_answers: correctAnswers,
+          average_score: Math.round(averageScore),
+          last_accessed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        // Check if progress exists to preserve timestamps
+        const { data: existing } = await supabase
+          .from('user_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('module_id', moduleId)
+          .maybeSingle();
+
+        // Preserve or set started_at
+        if (status === 'in_progress' && !existing?.started_at) {
+          updateData.started_at = new Date().toISOString();
+        } else if (existing?.started_at) {
+          updateData.started_at = existing.started_at;
+        }
+
+        // Preserve or set completed_at
+        if (completionPercentage === 100 && !existing?.completed_at) {
+          updateData.completed_at = new Date().toISOString();
+        } else if (existing?.completed_at) {
+          updateData.completed_at = existing.completed_at;
+        }
+
+        const { error: upsertError, data: savedData } = await supabase
+          .from('user_progress')
+          .upsert(updateData, {
+            onConflict: 'user_id,module_id'
+          })
+          .select();
+        
+        if (upsertError) {
+          console.error('Fallback save also failed:', upsertError);
+          throw upsertError;
+        } else {
+          console.log(`Progress saved via fallback for ${moduleId}: ${completionPercentage}%`, savedData);
+        }
+      } catch (fallbackError) {
+        console.error('Both API route and fallback save failed:', fallbackError);
+        // Show error to user in production
+        alert('Failed to save progress. Please check your connection and try again.');
+      }
     } finally {
       saveInProgressRef.current = false;
       setIsSaving(false);
@@ -416,20 +804,68 @@ export default function ModulePage() {
     setCurrentStep('lesson');
   };
 
-  const handleSubmitMCQ = (questionId: number, answer: string) => {
+  const handleSubmitMCQ = async (questionId: number, answer: string) => {
     const question = content.questions.find((q: any) => q.id === questionId);
-    const isCorrect = answer === question.correctAnswer;
     
-    const newFeedback = {
-      ...feedback,
-      [questionId]: {
-        isCorrect,
-        explanation: question.explanation
+    setIsSubmitting(true);
+    
+    try {
+      // Get company context for better AI feedback
+      const companyContext = companyData 
+        ? `Company: ${companyData.companyName} (${selectedCompany})\nBusiness: ${companyData.businessDescription}`
+        : undefined;
+      
+      // Call AI grading API
+      const response = await fetch(`/api/modules/${moduleId}/grade-mcq`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: question.question,
+          selectedAnswer: answer,
+          correctAnswer: question.correctAnswer,
+          options: question.options,
+          context: companyContext
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to grade answer');
       }
-    };
-    
-    setFeedback(newFeedback);
-    // Progress will be auto-saved via useEffect
+
+      const result = await response.json();
+      const aiFeedback = result.data;
+      
+      const newFeedback = {
+        ...feedback,
+        [questionId]: {
+          isCorrect: aiFeedback.isCorrect,
+          explanation: aiFeedback.explanation,
+          whyWrong: aiFeedback.whyWrong,
+          howToUnderstand: aiFeedback.howToUnderstand,
+          correctAnswerExplanation: aiFeedback.correctAnswerExplanation
+        }
+      };
+      
+      setFeedback(newFeedback);
+      // Progress will be auto-saved via useEffect
+    } catch (error) {
+      console.error('Error grading MCQ:', error);
+      // Fallback to simple check if API fails
+      const isCorrect = answer === question.correctAnswer;
+      const newFeedback = {
+        ...feedback,
+        [questionId]: {
+          isCorrect,
+          explanation: question.explanation,
+          error: 'AI grading unavailable. Showing basic feedback.'
+        }
+      };
+      setFeedback(newFeedback);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmitWritten = async (questionId: number) => {
@@ -449,46 +885,54 @@ export default function ModulePage() {
       return;
     }
 
-    // Simulate AI grading (in production, this calls the API)
-    // For MVP, provide realistic mock feedback
-    const mockScore = 70 + Math.floor(Math.random() * 25); // 70-95
-    
-    const newFeedback = {
-      ...feedback,
-      [questionId]: {
-        overall_score: mockScore,
-        criteria: {
-          clarity: {
-            score: Math.floor(mockScore / 5),
-            feedback: mockScore >= 80 ? 'Clear and well-organized response' : 'Response could be better structured'
-          },
-          evidence: {
-            score: Math.floor(mockScore / 5),
-            feedback: mockScore >= 80 ? 'Good use of specific data points' : 'Include more specific metrics and citations'
-          },
-          completeness: {
-            score: Math.floor(mockScore / 5),
-            feedback: mockScore >= 80 ? 'Addresses all parts of the question' : 'Some aspects need more depth'
-          },
-          critical_thinking: {
-            score: Math.floor(mockScore / 5),
-            feedback: mockScore >= 80 ? 'Demonstrates strong analytical thinking' : 'Consider implications and connections more deeply'
-          },
-          risk_analysis: {
-            score: Math.floor(mockScore / 5),
-            feedback: mockScore >= 80 ? 'Identifies and evaluates key risks well' : 'Risk analysis needs more detail'
-          }
+    try {
+      // Get company context for better AI grading
+      const companyContext = companyData 
+        ? `Company: ${companyData.companyName} (${selectedCompany})\nBusiness: ${companyData.businessDescription}\nRisk Factors: ${companyData.riskFactors}\nFinancial Discussion: ${companyData.financialDiscussion}`
+        : '';
+      
+      // Call AI grading API
+      const response = await fetch(`/api/modules/${moduleId}/grade`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        summary: mockScore >= 80 
-          ? 'Strong analysis demonstrating good understanding of key concepts. You effectively used specific data points and showed critical thinking.'
-          : 'Good effort with room for improvement. Focus on providing more specific evidence and deeper analysis of implications and risks.'
+        body: JSON.stringify({
+          userId: userId,
+          questionId: questionId,
+          questionText: question.question,
+          answerText: answer,
+          context: companyContext,
+          symbol: selectedCompany
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to grade answer');
       }
-    };
-    
-    setFeedback(newFeedback);
-    // Progress will be auto-saved via useEffect
-    
-    setIsSubmitting(false);
+
+      const result = await response.json();
+      const aiFeedback = result.data.feedback;
+      
+      const newFeedback = {
+        ...feedback,
+        [questionId]: aiFeedback
+      };
+      
+      setFeedback(newFeedback);
+      // Progress will be auto-saved via useEffect
+    } catch (error) {
+      console.error('Error grading written answer:', error);
+      setFeedback({
+        ...feedback,
+        [questionId]: {
+          error: 'Failed to grade answer. Please try again.',
+          overall_score: 0
+        }
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const progress = ((Object.keys(feedback).length / content.questions.length) * 100);
@@ -690,7 +1134,7 @@ export default function ModulePage() {
                       </CardDescription>
                     )}
                   </div>
-                  {feedback[question.id] && (
+                  {feedback[question.id] ? (
                     question.type === 'mcq' ? (
                       feedback[question.id].isCorrect ? (
                         <CheckCircle2 className="h-6 w-6 text-green-600" />
@@ -702,7 +1146,9 @@ export default function ModulePage() {
                         {feedback[question.id].overall_score}/100
                       </Badge>
                     )
-                  )}
+                  ) : isSubmitting && answers[question.id] && question.type === 'mcq' ? (
+                    <Badge variant="outline">Grading...</Badge>
+                  ) : null}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -724,13 +1170,13 @@ export default function ModulePage() {
                             : 'outline'
                         }
                         className="w-full justify-start h-auto py-3 text-left"
-                        onClick={() => {
+                        onClick={async () => {
                           setAnswers({ ...answers, [question.id]: option.label });
-                          if (!feedback[question.id]) {
-                            handleSubmitMCQ(question.id, option.label);
+                          if (!feedback[question.id] && !isSubmitting) {
+                            await handleSubmitMCQ(question.id, option.label);
                           }
                         }}
-                        disabled={!!feedback[question.id]}
+                        disabled={!!feedback[question.id] || isSubmitting}
                       >
                         <span className="font-semibold mr-2">{option.label}.</span>
                         {option.text}
@@ -784,7 +1230,29 @@ export default function ModulePage() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {question.type === 'mcq' ? (
-                        <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">{feedback[question.id].explanation}</p>
+                        <div className="space-y-3">
+                          <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">
+                            <strong>Explanation:</strong> {feedback[question.id].explanation}
+                          </p>
+                          {feedback[question.id].whyWrong && (
+                            <div className="bg-[#fff4e6] dark:bg-[#3a2e1a] p-3 rounded border border-[#ffd699] dark:border-[#5a4a2a]">
+                              <p className="text-sm font-semibold text-[#2d2d2d] dark:text-[#e8e6e3] mb-1">Why this answer is incorrect:</p>
+                              <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">{feedback[question.id].whyWrong}</p>
+                            </div>
+                          )}
+                          {feedback[question.id].howToUnderstand && (
+                            <div className="bg-[#e8f4e8] dark:bg-[#2a3a2a] p-3 rounded border border-[#b4d4b4] dark:border-[#4a6a4a]">
+                              <p className="text-sm font-semibold text-[#2d2d2d] dark:text-[#e8e6e3] mb-1">How to better understand this:</p>
+                              <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">{feedback[question.id].howToUnderstand}</p>
+                            </div>
+                          )}
+                          {feedback[question.id].correctAnswerExplanation && (
+                            <div className="bg-[#f0f8ff] dark:bg-[#1a2a3a] p-3 rounded border border-[#b4d4f4] dark:border-[#4a6a8a]">
+                              <p className="text-sm font-semibold text-[#2d2d2d] dark:text-[#e8e6e3] mb-1">Correct answer explanation:</p>
+                              <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">{feedback[question.id].correctAnswerExplanation}</p>
+                            </div>
+                          )}
+                        </div>
                       ) : feedback[question.id].error ? (
                         <p className="text-sm text-[#c45a5a]">{feedback[question.id].error}</p>
                       ) : (
@@ -817,14 +1285,23 @@ export default function ModulePage() {
                 <p className="mb-6 text-[#4a4a4a] dark:text-[#b8b8b8]">
                   Great job completing {content.title}. Continue to the next module to keep learning.
                 </p>
-                <Link href="/learn">
-                  <Button 
-                    size="lg" 
-                    className="bg-white hover:bg-[#f5f4f2] text-[#2d2d2d] border border-[#e0ddd8] shadow-sm dark:bg-[#242422] dark:hover:bg-[#2a2a28] dark:text-[#e8e6e3] dark:border-[#3a3a38]"
-                  >
-                    Back to Modules
-                  </Button>
-                </Link>
+                <Button 
+                  size="lg" 
+                  onClick={async () => {
+                    // Ensure progress is saved before navigating
+                    if (userId && Object.keys(feedback).length > 0) {
+                      const completedCount = Object.keys(feedback).length;
+                      await saveProgress(feedback, completedCount, content.questions.length);
+                      // Wait a bit more to ensure database commit
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                    router.push('/learn');
+                  }}
+                  disabled={isSaving}
+                  className="bg-white hover:bg-[#f5f4f2] text-[#2d2d2d] border border-[#e0ddd8] shadow-sm dark:bg-[#242422] dark:hover:bg-[#2a2a28] dark:text-[#e8e6e3] dark:border-[#3a3a38]"
+                >
+                  {isSaving ? 'Saving...' : 'Back to Modules'}
+                </Button>
               </CardContent>
             </Card>
           )}

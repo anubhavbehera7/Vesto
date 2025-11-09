@@ -100,7 +100,7 @@ export default function LearnPage() {
       const timer = setTimeout(() => {
         console.log('Refetching progress after navigation...');
         fetchProgress(false);
-      }, 500);
+      }, 800); // Increased delay to ensure database commits are complete
       
       return () => clearTimeout(timer);
     }
