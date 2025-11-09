@@ -364,30 +364,38 @@ export default function ModulePage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/learn">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="hover:bg-[#f5f4f2] dark:hover:bg-[#222220]">
               <ChevronLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{content.title}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold tracking-tight text-[#2d2d2d] dark:text-[#e8e6e3]">{content.title}</h1>
+            <p className="text-[#6a6a6a] dark:text-[#9a9a98]">
               {module.description}
             </p>
           </div>
         </div>
-        <Badge variant={module.level === 'easy' ? 'secondary' : module.level === 'expert' ? 'destructive' : 'default'} className="capitalize">
+        <Badge 
+          className={`capitalize ${
+            module.level === 'easy' 
+              ? 'bg-[#d4e4d8] text-[#2d2d2d] border-[#b4d4b4]' 
+              : module.level === 'expert' 
+              ? 'bg-[#f4d5c6] text-[#2d2d2d] border-[#e4c5b6]' 
+              : 'bg-[#e6dfe6] text-[#2d2d2d] border-[#d6cfd6]'
+          }`}
+        >
           {module.level}
         </Badge>
       </div>
 
       {/* Progress */}
-      <Card>
+      <Card className="border-[#e0ddd8] dark:border-[#3a3a38] bg-white dark:bg-[#242422]">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Progress</span>
-            <span className="text-sm text-muted-foreground">{Math.round(progress)}%</span>
+            <span className="text-sm font-medium text-[#2d2d2d] dark:text-[#e8e6e3]">Progress</span>
+            <span className="text-sm text-[#6a6a6a] dark:text-[#9a9a98]">{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} />
+          <Progress value={progress} className="bg-[#f5f4f2] dark:bg-[#222220]" />
         </CardContent>
       </Card>
 
@@ -433,32 +441,79 @@ export default function ModulePage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="prose dark:prose-invert max-w-none">
-              {content.lesson.split('\n\n').map((paragraph: string, index: number) => (
-                <p key={index} className="whitespace-pre-wrap">{paragraph}</p>
-              ))}
+            <CardContent className="space-y-6">
+              {content.lesson.split('\n\n').map((paragraph: string, index: number) => {
+                // Bold text formatting
+                const formatText = (text: string) => {
+                  const parts = text.split(/(\*\*.*?\*\*)/g);
+                  return parts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                      return <strong key={i} className="font-semibold text-[#2d2d2d] dark:text-[#e8e6e3]">{part.slice(2, -2)}</strong>;
+                    }
+                    return <span key={i}>{part}</span>;
+                  });
+                };
+
+                // Detect list items
+                if (paragraph.startsWith('-')) {
+                  const listItems = paragraph.split('\n').filter(item => item.trim());
+                  return (
+                    <ul key={index} className="space-y-2 ml-6 list-none">
+                      {listItems.map((item, i) => (
+                        <li key={i} className="relative pl-6 text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">
+                          <span className="absolute left-0 text-[#b4d4b4]">•</span>
+                          {formatText(item.replace(/^-\s*/, ''))}
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                }
+
+                // Detect numbered lists
+                if (/^\d+\./.test(paragraph)) {
+                  const listItems = paragraph.split('\n').filter(item => item.trim());
+                  return (
+                    <ol key={index} className="space-y-3 ml-6">
+                      {listItems.map((item, i) => (
+                        <li key={i} className="text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed pl-2">
+                          {formatText(item.replace(/^\d+\.\s*\*\*/, '').replace(/\*\*:/, ':'))}
+                        </li>
+                      ))}
+                    </ol>
+                  );
+                }
+
+                // Regular paragraphs
+                return (
+                  <p key={index} className="text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">
+                    {formatText(paragraph)}
+                  </p>
+                );
+              })}
             </CardContent>
           </Card>
 
           {companyData && (
-            <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <Card className="bg-[#f9f7f5] dark:bg-[#222220] border-[#e0ddd8] dark:border-[#3a3a38]">
               <CardHeader>
-                <CardTitle className="text-lg">Company Context: {companyData.companyName}</CardTitle>
+                <CardTitle className="text-lg text-[#2d2d2d] dark:text-[#e8e6e3]">
+                  Company Context: {companyData.companyName}
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm">
+              <CardContent className="space-y-5">
                 <div>
-                  <h4 className="font-semibold mb-1">Business Overview</h4>
-                  <p className="text-muted-foreground">{companyData.businessDescription}</p>
+                  <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Business Overview</h4>
+                  <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed">{companyData.businessDescription}</p>
                 </div>
                 {moduleId !== 'module-1' && (
                   <>
                     <div>
-                      <h4 className="font-semibold mb-1">Risk Factors</h4>
-                      <p className="text-muted-foreground">{companyData.riskFactors}</p>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Risk Factors</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed">{companyData.riskFactors}</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Financial Discussion</h4>
-                      <p className="text-muted-foreground">{companyData.financialDiscussion}</p>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Financial Discussion</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed">{companyData.financialDiscussion}</p>
                     </div>
                   </>
                 )}
@@ -466,8 +521,12 @@ export default function ModulePage() {
             </Card>
           )}
 
-          <div className="flex justify-end">
-            <Button size="lg" onClick={() => setCurrentStep('questions')}>
+          <div className="flex justify-end pt-4">
+            <Button 
+              size="lg" 
+              onClick={() => setCurrentStep('questions')}
+              className="bg-[#b4d4b4] hover:bg-[#a0c5a0] text-[#2d2d2d] font-medium shadow-sm border border-[#9cc09c] dark:bg-[#8fb48f] dark:hover:bg-[#a0c5a0] dark:text-[#1a1a18]"
+            >
               Continue to Questions
             </Button>
           </div>
@@ -564,11 +623,13 @@ export default function ModulePage() {
                 {/* Feedback Display */}
                 {feedback[question.id] && (
                   <Card className={question.type === 'mcq' 
-                    ? feedback[question.id].isCorrect ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                    : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
+                    ? feedback[question.id].isCorrect 
+                      ? 'bg-[#e8f4e8] dark:bg-[#2a3a2a] border-[#b4d4b4] dark:border-[#4a6a4a]' 
+                      : 'bg-[#fce8e8] dark:bg-[#3a2a2a] border-[#e4b4b4] dark:border-[#6a4a4a]'
+                    : 'bg-[#f9f7f5] dark:bg-[#222220] border-[#e0ddd8] dark:border-[#3a3a38]'
                   }>
                     <CardHeader>
-                      <CardTitle className="text-lg">
+                      <CardTitle className="text-lg text-[#2d2d2d] dark:text-[#e8e6e3]">
                         {question.type === 'mcq' 
                           ? feedback[question.id].isCorrect ? '✓ Correct!' : '✗ Incorrect'
                           : `Score: ${feedback[question.id].overall_score}/100`
@@ -577,20 +638,20 @@ export default function ModulePage() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {question.type === 'mcq' ? (
-                        <p className="text-sm">{feedback[question.id].explanation}</p>
+                        <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">{feedback[question.id].explanation}</p>
                       ) : feedback[question.id].error ? (
-                        <p className="text-sm text-destructive">{feedback[question.id].error}</p>
+                        <p className="text-sm text-[#c45a5a]">{feedback[question.id].error}</p>
                       ) : (
                         <>
-                          <p className="text-sm font-medium">{feedback[question.id].summary}</p>
+                          <p className="text-sm font-medium text-[#2d2d2d] dark:text-[#e8e6e3]">{feedback[question.id].summary}</p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                             {Object.entries(feedback[question.id].criteria).map(([key, value]: [string, any]) => (
                               <div key={key} className="text-sm">
                                 <div className="flex justify-between items-center mb-1">
-                                  <span className="font-semibold capitalize">{key.replace('_', ' ')}</span>
-                                  <Badge variant="outline">{value.score}/20</Badge>
+                                  <span className="font-semibold capitalize text-[#2d2d2d] dark:text-[#e8e6e3]">{key.replace('_', ' ')}</span>
+                                  <Badge className="bg-[#e8e6e3] text-[#2d2d2d] border-[#d0cdc8]">{value.score}/20</Badge>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{value.feedback}</p>
+                                <p className="text-xs text-[#6a6a6a] dark:text-[#9a9a98]">{value.feedback}</p>
                               </div>
                             ))}
                           </div>
@@ -604,14 +665,17 @@ export default function ModulePage() {
           ))}
 
           {progress === 100 && (
-            <Card className="bg-gradient-to-r from-green-600 to-blue-600 text-white border-0">
+            <Card className="bg-[#d4e4d8] dark:bg-[#3a4a3e] border-[#b4d4b4] dark:border-[#5a7a5e]">
               <CardContent className="py-8 text-center">
-                <h2 className="text-2xl font-bold mb-2">🎉 Module Complete!</h2>
-                <p className="mb-6 opacity-90">
+                <h2 className="text-2xl font-bold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">🎉 Module Complete!</h2>
+                <p className="mb-6 text-[#4a4a4a] dark:text-[#b8b8b8]">
                   Great job completing {content.title}. Continue to the next module to keep learning.
                 </p>
                 <Link href="/learn">
-                  <Button size="lg" variant="secondary">
+                  <Button 
+                    size="lg" 
+                    className="bg-white hover:bg-[#f5f4f2] text-[#2d2d2d] border border-[#e0ddd8] shadow-sm dark:bg-[#242422] dark:hover:bg-[#2a2a28] dark:text-[#e8e6e3] dark:border-[#3a3a38]"
+                  >
                     Back to Modules
                   </Button>
                 </Link>
