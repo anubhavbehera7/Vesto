@@ -30,15 +30,6 @@ export async function GET() {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Try to list available models first
-    let availableModels: string[] = [];
-    try {
-      const models = await genAI.listModels();
-      availableModels = models.map((m: any) => m.name || m).slice(0, 10);
-    } catch (e) {
-      // Ignore if listing fails
-    }
-
     // Try different free model names (prioritize free models)
     const modelNames = [
       'gemini-2.5-flash',   // Free tier - latest flash model
@@ -80,7 +71,6 @@ export async function GET() {
           success: false,
           error: 'Could not find a working model',
           lastError: lastError?.message || 'Unknown error',
-          availableModels: availableModels.length > 0 ? availableModels : 'Could not list models',
           triedModels: modelNames,
           message: 'None of the tested model names worked. Check the Gemini API documentation for the correct model name.'
         },
@@ -122,7 +112,7 @@ export async function GET() {
           response: jsonResponse
         }
       },
-      availableModels: availableModels.length > 0 ? availableModels : 'Could not list models'
+      note: 'Model listing is not available via the SDK. Tested models are listed in triedModels.'
     });
   } catch (error: any) {
     console.error('Gemini API test error:', error);
