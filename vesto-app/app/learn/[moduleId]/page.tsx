@@ -605,8 +605,56 @@ export default function ModulePage() {
     getUser();
   }, []);
 
+  // Calculate valid completions (only correct MCQ and written answers with score >= 70)
+  const getValidCompletions = (currentFeedback: Record<number, any>) => {
+    let validCount = 0;
+    
+    Object.entries(currentFeedback).forEach(([questionId, fb]: [string, any]) => {
+      const question = customizedQuestions.find((q: any) => q.id === parseInt(questionId));
+      if (question) {
+        if (question.type === 'mcq') {
+          // Only count if correct
+          if (fb.isCorrect) {
+            validCount++;
+          }
+        } else if (question.type === 'written') {
+          // Only count if score >= 70
+          if (fb.overall_score !== undefined && fb.overall_score >= 70) {
+            validCount++;
+          }
+        }
+      }
+    });
+    
+    return validCount;
+  };
+
+  // Calculate wrong answers (incorrect MCQ or written with score < 70)
+  const getWrongAnswers = (currentFeedback: Record<number, any>) => {
+    let wrongCount = 0;
+    
+    Object.entries(currentFeedback).forEach(([questionId, fb]: [string, any]) => {
+      const question = customizedQuestions.find((q: any) => q.id === parseInt(questionId));
+      if (question) {
+        if (question.type === 'mcq') {
+          // Count if incorrect
+          if (fb.isCorrect === false) {
+            wrongCount++;
+          }
+        } else if (question.type === 'written') {
+          // Count if score < 70
+          if (fb.overall_score !== undefined && fb.overall_score < 70) {
+            wrongCount++;
+          }
+        }
+      }
+    });
+    
+    return wrongCount;
+  };
+
   // Function to save progress to database using API route for better reliability
-  const saveProgress = async (currentFeedback: Record<number, any>, completedQuestions: number, totalQuestions: number) => {
+  const saveProgress = async (currentFeedback: Record<number, any>, totalQuestions: number) => {
     if (!userId || saveInProgressRef.current) {
       console.warn('Cannot save progress: userId missing or save in progress', { userId, saveInProgress: saveInProgressRef.current });
       return;
@@ -615,8 +663,9 @@ export default function ModulePage() {
     saveInProgressRef.current = true;
     setIsSaving(true);
 
-    // Ensure completion percentage is exactly 100 when all questions are answered
-    const completionPercentage = completedQuestions === totalQuestions ? 100 : Math.round((completedQuestions / totalQuestions) * 100);
+    // Count only valid completions (correct MCQ or written with score >= 70)
+    const validCompletions = getValidCompletions(currentFeedback);
+    const completionPercentage = validCompletions === totalQuestions ? 100 : Math.round((validCompletions / totalQuestions) * 100);
     
     // Calculate correct answers and average score
     let correctAnswers = 0;
@@ -624,7 +673,7 @@ export default function ModulePage() {
     let scoredCount = 0;
 
     Object.entries(currentFeedback).forEach(([questionId, fb]: [string, any]) => {
-      const question = content.questions.find((q: any) => q.id === parseInt(questionId));
+      const question = customizedQuestions.find((q: any) => q.id === parseInt(questionId));
       if (question) {
         if (question.type === 'mcq') {
           if (fb.isCorrect) correctAnswers++;
@@ -770,9 +819,8 @@ export default function ModulePage() {
   // Auto-save progress whenever feedback changes
   useEffect(() => {
     if (userId && Object.keys(feedback).length > 0 && content) {
-      const completedCount = Object.keys(feedback).length;
       const totalQuestions = content.questions.length;
-      saveProgress(feedback, completedCount, totalQuestions);
+      saveProgress(feedback, totalQuestions);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedback, userId]);
@@ -783,8 +831,7 @@ export default function ModulePage() {
     
     // Save progress one more time before navigating
     if (userId && Object.keys(feedback).length > 0) {
-      const completedCount = Object.keys(feedback).length;
-      await saveProgress(feedback, completedCount, content.questions.length);
+      await saveProgress(feedback, content.questions.length);
     }
     
     // Wait longer to ensure save completes and database is updated
@@ -984,7 +1031,15 @@ export default function ModulePage() {
     }
   };
 
-  const progress = ((Object.keys(feedback).length / content.questions.length) * 100);
+  // Calculate progress based on valid completions only
+  const validCompletions = getValidCompletions(feedback);
+  const wrongAnswers = getWrongAnswers(feedback);
+  const progress = content.questions.length > 0 
+    ? (validCompletions / content.questions.length) * 100 
+    : 0;
+  const wrongProgress = content.questions.length > 0
+    ? (wrongAnswers / content.questions.length) * 100
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -1025,9 +1080,30 @@ export default function ModulePage() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-[#2d2d2d] dark:text-[#e8e6e3]">Progress</span>
-            <span className="text-sm text-[#6a6a6a] dark:text-[#9a9a98]">{Math.round(progress)}%</span>
+            <span className="text-sm text-[#6a6a6a] dark:text-[#9a9a98]">
+              {validCompletions}/{content.questions.length} correct
+              {wrongAnswers > 0 && ` • ${wrongAnswers} need redo`}
+            </span>
           </div>
-          <Progress value={progress} className="bg-[#f5f4f2] dark:bg-[#222220]" />
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-[#f5f4f2] dark:bg-[#222220]">
+            {/* Red portion for wrong answers */}
+            {wrongProgress > 0 && (
+              <div
+                className="absolute left-0 top-0 h-full bg-red-500 dark:bg-red-600 transition-all"
+                style={{ width: `${wrongProgress}%` }}
+              />
+            )}
+            {/* Green portion for correct answers (positioned after red) */}
+            {progress > 0 && (
+              <div
+                className="absolute left-0 top-0 h-full bg-[#b4d4b4] dark:bg-[#8fb48f] transition-all"
+                style={{ 
+                  width: `${progress}%`,
+                  left: `${wrongProgress}%`
+                }}
+              />
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -1129,23 +1205,120 @@ export default function ModulePage() {
             <Card className="bg-[#f9f7f5] dark:bg-[#222220] border-[#e0ddd8] dark:border-[#3a3a38]">
               <CardHeader>
                 <CardTitle className="text-lg text-[#2d2d2d] dark:text-[#e8e6e3]">
-                  Company Context: {companyData.companyName}
+                  Company Context: {companyData.companyName} ({selectedCompany})
                 </CardTitle>
+                <CardDescription className="text-[#6a6a6a] dark:text-[#9a9a98]">
+                  {moduleId === 'module-1' && 'Use this context to understand the company\'s fundamentals and apply financial metrics.'}
+                  {moduleId === 'module-2' && 'Review the business model and risk factors to analyze how the company presents itself in its 10-K filing.'}
+                  {moduleId === 'module-3' && 'Examine the financial performance and discussion to understand the company\'s financial statements and accounting practices.'}
+                  {moduleId === 'module-4' && 'Analyze the competitive position, business model, and risk factors to identify competitive advantages and market moats.'}
+                  {moduleId === 'module-5' && 'Use all available context to conduct a comprehensive comparative analysis and build a complete investment thesis.'}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Business Overview</h4>
-                  <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed">{companyData.businessDescription}</p>
-                </div>
-                {moduleId !== 'module-1' && (
+                {moduleId === 'module-1' && (
+                  <div>
+                    <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Company Overview for Fundamental Analysis</h4>
+                    <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.businessDescription}</p>
+                    <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                      <strong>Why this matters:</strong> Understanding {companyData.companyName}'s business model helps you interpret financial metrics like P/E ratios, EBITDA margins, and ROE in context. Different industries have different typical ranges for these ratios, so knowing what the company does is essential for meaningful analysis.
+                    </p>
+                  </div>
+                )}
+                
+                {moduleId === 'module-2' && (
                   <>
                     <div>
-                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Risk Factors</h4>
-                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed">{companyData.riskFactors}</p>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Business Description (Item 1)</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.businessDescription}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>What to look for:</strong> How does {companyData.companyName} describe its business model, revenue streams, and competitive position? Pay attention to how they frame their value proposition and market positioning.
+                      </p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Financial Discussion</h4>
-                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed">{companyData.financialDiscussion}</p>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Risk Factors (Item 1A)</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.riskFactors}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>What to analyze:</strong> Companies are required to disclose material risks. Consider how {companyData.companyName} prioritizes and presents these risks. Are they transparent about challenges, or do they minimize concerns? How do these risks relate to the business description?
+                      </p>
+                    </div>
+                  </>
+                )}
+                
+                {moduleId === 'module-3' && (
+                  <>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Business Model Context</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.businessDescription}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Connection to financials:</strong> Understanding {companyData.companyName}'s business model helps you interpret the balance sheet and income statement. For example, asset-heavy businesses will show different balance sheet structures than software companies.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Management's Discussion & Analysis (MD&A)</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.financialDiscussion}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>What to examine:</strong> The MD&A section provides management's interpretation of the financial statements. Look for how {companyData.companyName} explains revenue trends, margin changes, and balance sheet movements. Compare their narrative to what the numbers actually show.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Key Risk Factors Affecting Financials</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.riskFactors}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Financial impact:</strong> Consider how these risks could affect {companyData.companyName}'s financial statements. For example, supply chain risks might impact inventory levels, while regulatory risks could affect revenue recognition or require reserves.
+                      </p>
+                    </div>
+                  </>
+                )}
+                
+                {moduleId === 'module-4' && (
+                  <>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Business Model & Competitive Position</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.businessDescription}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Moat analysis:</strong> Identify what gives {companyData.companyName} its competitive advantage. Is it network effects, brand strength, cost advantages, switching costs, or regulatory barriers? Look for language about market share, customer loyalty, or unique capabilities.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Competitive Threats & Risk Factors</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.riskFactors}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Competitive landscape:</strong> The risk factors reveal {companyData.companyName}'s vulnerabilities and competitive pressures. Analyze which risks suggest weak moats (e.g., intense competition) versus external threats (e.g., regulation) that might actually indicate a strong position.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Financial Performance Indicators</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.financialDiscussion}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Moat validation:</strong> Strong competitive advantages should translate to financial results. Look for evidence in {companyData.companyName}'s financial performance—sustained margins, pricing power, or consistent market share gains suggest durable moats.
+                      </p>
+                    </div>
+                  </>
+                )}
+                
+                {moduleId === 'module-5' && (
+                  <>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Complete Business Profile</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.businessDescription}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>For comparison:</strong> Use this business description to understand {companyData.companyName}'s core operations, revenue model, and market position. When comparing to another company, identify similarities and differences in business models, even within the same industry.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Risk Profile & Competitive Position</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.riskFactors}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Comparative risk analysis:</strong> Compare {companyData.companyName}'s risk factors to another company's. Which company faces more significant threats? Are the risks company-specific or industry-wide? This helps assess relative investment attractiveness.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-[#2d2d2d] dark:text-[#e8e6e3]">Financial Performance & Strategy</h4>
+                      <p className="text-[#5a5a5a] dark:text-[#9a9a98] leading-relaxed mb-3">{companyData.financialDiscussion}</p>
+                      <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98] italic">
+                        <strong>Comparative financial analysis:</strong> Use {companyData.companyName}'s financial discussion to understand their performance trends, capital allocation strategy, and management priorities. Compare these to another company's financial narrative to identify which management team is executing better or has a more compelling strategy.
+                      </p>
                     </div>
                   </>
                 )}
@@ -1195,11 +1368,18 @@ export default function ModulePage() {
                       feedback[question.id].isCorrect ? (
                         <CheckCircle2 className="h-6 w-6 text-green-600" />
                       ) : (
-                        <XCircle className="h-6 w-6 text-red-600" />
+                        <div className="flex items-center gap-2">
+                          <XCircle className="h-6 w-6 text-red-600" />
+                          <Badge variant="destructive" className="text-xs">Redo Required</Badge>
+                        </div>
                       )
                     ) : (
-                      <Badge variant={feedback[question.id].overall_score >= 70 ? 'default' : 'secondary'}>
+                      <Badge 
+                        variant={feedback[question.id].overall_score >= 70 ? 'default' : 'destructive'}
+                        className={feedback[question.id].overall_score < 70 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : ''}
+                      >
                         {feedback[question.id].overall_score}/100
+                        {feedback[question.id].overall_score < 70 && ' - Redo Required'}
                       </Badge>
                     )
                   ) : isSubmitting && answers[question.id] && question.type === 'mcq' ? (
@@ -1228,11 +1408,12 @@ export default function ModulePage() {
                         className="w-full justify-start h-auto py-3 text-left"
                         onClick={async () => {
                           setAnswers({ ...answers, [question.id]: option.label });
-                          if (!feedback[question.id] && !isSubmitting) {
+                          // Allow resubmission if answer was wrong
+                          if ((!feedback[question.id] || !feedback[question.id].isCorrect) && !isSubmitting) {
                             await handleSubmitMCQ(question.id, option.label);
                           }
                         }}
-                        disabled={!!feedback[question.id] || isSubmitting}
+                        disabled={(feedback[question.id]?.isCorrect === true) || isSubmitting}
                       >
                         <span className="font-semibold mr-2">{option.label}.</span>
                         {option.text}
@@ -1247,13 +1428,18 @@ export default function ModulePage() {
                       value={answers[question.id] || ''}
                       onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.value })}
                       rows={8}
-                      disabled={!!feedback[question.id]}
+                      disabled={feedback[question.id]?.overall_score >= 70}
                     />
-                    {!feedback[question.id] && (
+                    {(!feedback[question.id] || (feedback[question.id].overall_score !== undefined && feedback[question.id].overall_score < 70)) && (
                       <>
                         {answers[question.id] && answers[question.id].length < 50 && (
                           <p className="text-sm text-[#6a6a6a] dark:text-[#9a9a98]">
                             Please provide at least 50 characters ({answers[question.id].length}/50)
+                          </p>
+                        )}
+                        {feedback[question.id] && feedback[question.id].overall_score < 70 && (
+                          <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-2">
+                            Score below 70. Please revise and resubmit to count towards progress.
                           </p>
                         )}
                         <Button 
@@ -1261,7 +1447,7 @@ export default function ModulePage() {
                           disabled={isSubmitting || !answers[question.id] || answers[question.id].length < 50}
                           className="w-full"
                         >
-                          {isSubmitting ? 'Grading...' : 'Submit for AI Grading'}
+                          {isSubmitting ? 'Grading...' : feedback[question.id]?.overall_score < 70 ? 'Resubmit for AI Grading' : 'Submit for AI Grading'}
                         </Button>
                       </>
                     )}
@@ -1287,6 +1473,13 @@ export default function ModulePage() {
                     <CardContent className="space-y-3">
                       {question.type === 'mcq' ? (
                         <div className="space-y-3">
+                          {!feedback[question.id].isCorrect && (
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md mb-3">
+                              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                Incorrect answer. This question does not count towards progress. Please select the correct answer to proceed.
+                              </p>
+                            </div>
+                          )}
                           <p className="text-sm text-[#4a4a4a] dark:text-[#b8b8b8] leading-relaxed">
                             <strong>Explanation:</strong> {feedback[question.id].explanation}
                           </p>
@@ -1313,6 +1506,13 @@ export default function ModulePage() {
                         <p className="text-sm text-[#c45a5a]">{feedback[question.id].error}</p>
                       ) : (
                         <>
+                          {feedback[question.id].overall_score < 70 && (
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md mb-3">
+                              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                Score below 70. This answer does not count towards progress. Please revise and resubmit to achieve a passing score.
+                              </p>
+                            </div>
+                          )}
                           <p className="text-sm font-medium text-[#2d2d2d] dark:text-[#e8e6e3]">{feedback[question.id].summary}</p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                             {Object.entries(feedback[question.id].criteria).map(([key, value]: [string, any]) => (
@@ -1346,8 +1546,7 @@ export default function ModulePage() {
                   onClick={async () => {
                     // Ensure progress is saved before navigating
                     if (userId && Object.keys(feedback).length > 0) {
-                      const completedCount = Object.keys(feedback).length;
-                      await saveProgress(feedback, completedCount, content.questions.length);
+                      await saveProgress(feedback, content.questions.length);
                       // Wait a bit more to ensure database commit
                       await new Promise(resolve => setTimeout(resolve, 300));
                     }
