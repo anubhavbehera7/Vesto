@@ -1,9 +1,16 @@
 import { createClient } from './client';
 import type { Company, CompanyFundamentals, CompanyQuote, Mock10KData, UserProgress, UserAnswer, UserPortfolio, PitchSubmission, Question } from '@/types';
 
+// Note: Using browser client for both server and client contexts
+// The browser client works fine in API routes since we're using anon key with RLS
+// For authenticated operations, use the server client directly in API routes
+function getSupabaseClient() {
+  return createClient();
+}
+
 // Company queries
 export async function getAllCompanies() {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('companies')
     .select('*')
@@ -14,7 +21,7 @@ export async function getAllCompanies() {
 }
 
 export async function getCompanyBySymbol(symbol: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('companies')
     .select('*')
@@ -26,7 +33,7 @@ export async function getCompanyBySymbol(symbol: string) {
 }
 
 export async function getCompanyFundamentals(symbol: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error} = await supabase
     .from('company_fundamentals')
     .select('*')
@@ -40,7 +47,7 @@ export async function getCompanyFundamentals(symbol: string) {
 }
 
 export async function getCompanyQuote(symbol: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('company_quotes')
     .select('*')
@@ -54,7 +61,7 @@ export async function getCompanyQuote(symbol: string) {
 }
 
 export async function getMock10KData(symbol: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('mock_10k_data')
     .select('*')
@@ -65,9 +72,33 @@ export async function getMock10KData(symbol: string) {
   return data as Mock10KData;
 }
 
+export async function getCompanyFinancials(symbol: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from('company_financials')
+    .select('*')
+    .eq('symbol', symbol)
+    .order('year', { ascending: false })
+    .order('quarter', { ascending: false })
+    .limit(10); // Get up to 10 records to ensure we have enough distinct years
+  
+  if (error && error.code !== 'PGRST116') throw error;
+  return (data || []) as Array<{
+    id: number;
+    company_id: number;
+    symbol: string;
+    year: number;
+    quarter: number;
+    form: string;
+    income_statement: any;
+    balance_sheet: any;
+    cash_flow: any;
+  }>;
+}
+
 // Module and question queries
 export async function getQuestionsForModule(moduleId: string, symbol?: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   let query = supabase
     .from('ai_generated_questions')
     .select('*')
@@ -85,7 +116,7 @@ export async function getQuestionsForModule(moduleId: string, symbol?: string) {
 
 // User progress queries
 export async function getUserProgress(userId: string, moduleId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_progress')
     .select('*')
@@ -98,7 +129,7 @@ export async function getUserProgress(userId: string, moduleId: string) {
 }
 
 export async function updateUserProgress(userId: string, moduleId: string, updates: Partial<UserProgress>) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_progress')
     .upsert({
@@ -116,7 +147,7 @@ export async function updateUserProgress(userId: string, moduleId: string, updat
 
 // User answer queries
 export async function saveUserAnswer(answer: Omit<UserAnswer, 'id' | 'created_at'>) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_answers')
     .insert(answer)
@@ -128,7 +159,7 @@ export async function saveUserAnswer(answer: Omit<UserAnswer, 'id' | 'created_at
 }
 
 export async function getUserAnswersForModule(userId: string, moduleId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_answers')
     .select('*')
@@ -142,7 +173,7 @@ export async function getUserAnswersForModule(userId: string, moduleId: string) 
 
 // Portfolio queries
 export async function getUserPortfolio(userId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_portfolios')
     .select('*')
@@ -154,7 +185,7 @@ export async function getUserPortfolio(userId: string) {
 }
 
 export async function addToPortfolio(holding: Omit<UserPortfolio, 'id' | 'created_at' | 'updated_at'>) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_portfolios')
     .upsert(holding, {
@@ -169,7 +200,7 @@ export async function addToPortfolio(holding: Omit<UserPortfolio, 'id' | 'create
 
 // Pitch submission queries
 export async function submitPitch(pitch: Omit<PitchSubmission, 'id' | 'created_at'>) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('pitch_submissions')
     .insert(pitch)
@@ -181,7 +212,7 @@ export async function submitPitch(pitch: Omit<PitchSubmission, 'id' | 'created_a
 }
 
 export async function getUserPitches(userId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('pitch_submissions')
     .select('*')
@@ -193,7 +224,7 @@ export async function getUserPitches(userId: string) {
 }
 
 export async function getPitchStats(userId: string) {
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('pitch_submissions')
     .select('status')
